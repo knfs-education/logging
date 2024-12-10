@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  nodejs-app:
+    image: node:20
+    container_name: nodejs-app
+    working_dir: /app
+    volumes:
+      - ./app:/app
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "3002:3002"
+    command: node app_1.js
+    networks:
+      - loki-logging-net
+    labels:
+      - "logging=true"
+
+  nodejs-app-2:
+    image: node:20
+    container_name: nodejs-app-2
+    working_dir: /app
+    volumes:
+      - ./app:/app
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "3003:3003"
+    command: node app_2.js
+    networks:
+      - loki-logging-net
+    labels:
+      - "logging=true"
+
+
+  # Dịch vụ Loki (công cụ thu thập và lưu trữ logs)
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
+    networks:
+      - loki-logging-net
+
+  # Dịch vụ Grafana (để hiển thị logs)
+  grafana:
+    image: grafana/grafana:9.5.5
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - loki-logging-net
+    depends_on:
+      - loki
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    volumes:
+      - ./promtail/promtail-config.yaml:/etc/promtail/promtail.yaml
+      - /var/run/docker.sock:/var/run/docker.sock 
+    command: -config.file=/etc/promtail/promtail.yaml
+    networks:
+      - loki-logging-net
+    depends_on:
+      - nodejs-app-2
+
+networks:
+  loki-logging-net:
+    driver: bridge

@@ -1,0 +1,26 @@
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+
+ingester:
+  chunk_target_size: 1048576
+  max_chunk_age: 1h
+  max_streams_per_user: 10000
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: loki_index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /data/loki/index
+    cache_location: /data/loki/cache
+    shared_store: filesystem
+  filesystem:
+    directory: /data/loki/chunks
